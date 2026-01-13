@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POC 기반 종목 추천 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 26px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-badge.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .condition-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .condition-item h3 {
+            font-size: 14px;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .condition-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stock-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .stock-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .stock-card.buy {
+            border-color: #28a745;
+            background: linear-gradient(to right, #ffffff, #d4edda);
+        }
+
+        .stock-card.sell {
+            border-color: #dc3545;
+            background: linear-gradient(to right, #ffffff, #f8d7da);
+        }
+
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stock-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stock-code {
+            font-size: 14px;
+            color: #666;
+            margin-left: 10px;
+        }
+
+        .signal-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .signal-badge.buy {
+            background: #28a745;
+            color: white;
+        }
+
+        .signal-badge.sell {
+            background: #dc3545;
+            color: white;
+        }
+
+        .stock-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            font-size: 13px;
+            color: #555;
+        }
+
+        .info-item strong {
+            color: #333;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .reason-box {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .reason-box h4 {
+            font-size: 13px;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .reason-box ul {
+            margin-left: 20px;
+        }
+
+        .reason-box li {
+            font-size: 12px;
+            color: #555;
+            margin: 4px 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .summary-box {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .chart-mini {
+            height: 60px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-top: 10px;
+            padding: 10px;
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        .chart-bar.poc {
+            background: linear-gradient(to top, #ff6b6b, #ee5a6f);
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .condition-controls,
+            .stock-info,
+            .summary-box {
+                grid-template-columns: 1fr;
+            }
+
+            .stock-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 POC 기반 종목 추천 시스템</h1>
+            <p>매물대 분석으로 매수/매도 시그널이 있는 종목을 자동으로 찾아드립니다</p>
+            <p style="font-size: 12px; color: #888; margin-top: 5px;">📊 데이터 출처: Yahoo Finance (무료)</p>
+            <div id="apiStatus" class="status-badge disconnected">API 연결 확인 중...</div>
+        </div>
+
+        <div class="card">
+            <h2>⚙️ 검색 조건 설정</h2>
+            
+            <div class="condition-item">
+                <h3>📊 POC 매수 조건</h3>
+                <p style="font-size: 13px; color: #666; margin-top: 5px;">
+                    현재가가 POC 근처에서 지지받고 반등하는 종목
+                </p>
+                <div class="condition-controls">
+                    <div class="input-group">
+                        <label>POC 오차범위 (%)</label>
+                        <input type="number" id="pocTolerance" value="2" step="0.1" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>최소 반등 강도 (%)</label>
+                        <input type="number" id="bounceStrength" value="1" step="0.1" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="condition-item">
+                <h3>📈 거래량 조건</h3>
+                <div class="condition-controls">
+                    <div class="input-group">
+                        <label>평균 대비 최소 배수</label>
+                        <input type="number" id="volumeMultiplier" value="1.5" step="0.1" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>거래대금 필터 (백만원)</label>
+                        <input type="number" id="minTradeValue" value="1000" step="100" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="condition-item">
+                <h3>💰 가격 조건</h3>
+                <div class="condition-controls">
+                    <div class="input-group">
+                        <label>최소 주가 (원)</label>
+                        <input type="number" id="minPrice" value="5000" step="1000" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>최대 주가 (원)</label>
+                        <input type="number" id="maxPrice" value="100000" step="1000" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="scanButton" onclick="scanStocks()" style="margin-top: 20px; font-size: 16px;">
+                🔍 종목 검색 시작
+            </button>
+        </div>
+
+        <div id="errorSection" style="display: none;"></div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="card">
+                <h2>📋 검색 결과</h2>
+                <div class="summary-box" id="summaryBox"></div>
+                <div id="stockList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API 엔드포인트 설정
+        const API_BASE = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000' 
+            : '';
+
+        // API 상태 확인
+        async function checkApiStatus() {
+            const statusBadge = document.getElementById('apiStatus');
+            try {
+                const response = await fetch(`${API_BASE}/api/scan?test=true`);
+                if (response.ok) {
+                    statusBadge.className = 'status-badge connected';
+                    statusBadge.textContent = '✅ API 연결됨';
+                } else {
+                    throw new Error('API response error');
+                }
+            } catch (error) {
+                statusBadge.className = 'status-badge disconnected';
+                statusBadge.textContent = '❌ API 연결 실패';
+            }
+        }
+
+        // 페이지 로드 시 API 상태 확인
+        checkApiStatus();
+
+        async function scanStocks() {
+            const button = document.getElementById('scanButton');
+            const resultsSection = document.getElementById('resultsSection');
+            const errorSection = document.getElementById('errorSection');
+            const stockList = document.getElementById('stockList');
+            
+            // 조건 가져오기
+            const conditions = {
+                pocTolerance: document.getElementById('pocTolerance').value,
+                bounceStrength: document.getElementById('bounceStrength').value,
+                volumeMultiplier: document.getElementById('volumeMultiplier').value,
+                minPrice: document.getElementById('minPrice').value,
+                maxPrice: document.getElementById('maxPrice').value,
+                minTradeValue: document.getElementById('minTradeValue').value
+            };
+
+            // 버튼 비활성화
+            button.disabled = true;
+            button.textContent = '🔍 분석 중...';
+
+            // 에러 섹션 숨기기
+            errorSection.style.display = 'none';
+            
+            // 로딩 표시
+            resultsSection.style.display = 'block';
+            stockList.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="color: #667eea; font-weight: 600;">실시간 종목을 분석 중입니다...</p>
+                    <p style="color: #999; font-size: 14px; margin-top: 10px;">Yahoo Finance에서 데이터를 가져오고 있습니다 (약 10-20초 소요)</p>
+                </div>
+            `;
+
+            try {
+                // API 호출
+                const queryParams = new URLSearchParams(conditions);
+                const response = await fetch(`${API_BASE}/api/scan?${queryParams}`);
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Unknown error');
+                }
+
+                // 결과 표시
+                displayResults(data.recommendations);
+
+            } catch (error) {
+                console.error('Scan error:', error);
+                resultsSection.style.display = 'none';
+                errorSection.style.display = 'block';
+                errorSection.innerHTML = `
+                    <div class="error-message">
+                        <strong>⚠️ 오류 발생</strong><br>
+                        ${error.message}<br><br>
+                        <small>
+                        - 네트워크 연결을 확인하세요<br>
+                        - 잠시 후 다시 시도해보세요<br>
+                        - Yahoo Finance 서비스에 일시적인 문제가 있을 수 있습니다
+                        </small>
+                    </div>
+                `;
+            } finally {
+                // 버튼 활성화
+                button.disabled = false;
+                button.textContent = '🔍 종목 검색 시작';
+            }
+        }
+
+        function displayResults(recommendations) {
+            const summaryBox = document.getElementById('summaryBox');
+            const stockList = document.getElementById('stockList');
+
+            const buySignals = recommendations.filter(r => r.signal === 'BUY').length;
+            const sellSignals = recommendations.filter(r => r.signal === 'SELL').length;
+
+            summaryBox.innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-number">${recommendations.length}</div>
+                    <div class="summary-label">총 발견 종목</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number" style="color: #28a745;">${buySignals}</div>
+                    <div class="summary-label">매수 시그널</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number" style="color: #dc3545;">${sellSignals}</div>
+                    <div class="summary-label">매도 시그널</div>
+                </div>
+            `;
+
+            if (recommendations.length === 0) {
+                stockList.innerHTML = `
+                    <div class="no-results">
+                        <p style="font-size: 18px; margin-bottom: 10px;">😔</p>
+                        <p style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">조건에 맞는 종목이 없습니다</p>
+                        <p style="font-size: 14px;">조건을 완화하거나 다시 시도해보세요</p>
+                    </div>
+                `;
+                return;
+            }
+
+            stockList.innerHTML = recommendations.map(stock => {
+                const maxVolume = Math.max(...stock.volumeProfile.map(v => v.volume));
+                const chartBars = stock.volumeProfile.map(v => {
+                    const height = (v.volume / maxVolume) * 100;
+                    const isPOC = Math.abs(v.price - stock.poc) < stock.currentPrice * 0.01;
+                    return `<div class="chart-bar ${isPOC ? 'poc' : ''}" style="height: ${height}%"></div>`;
+                }).join('');
+
+                return `
+                    <div class="stock-card ${stock.signal.toLowerCase()}">
+                        <div class="stock-header">
+                            <div>
+                                <span class="stock-name">${stock.name}</span>
+                                <span class="stock-code">${stock.code}</span>
+                            </div>
+                            <span class="signal-badge ${stock.signal.toLowerCase()}">
+                                ${stock.signal === 'BUY' ? '🟢 매수' : '🔴 매도'}
+                            </span>
+                        </div>
+
+                        <div class="stock-info">
+                            <div class="info-item">
+                                <strong>현재가</strong>
+                                ${stock.currentPrice.toLocaleString()}원
+                                <span style="color: ${stock.priceChange >= 0 ? '#dc3545' : '#0066ff'};">
+                                    ${stock.priceChange >= 0 ? '▲' : '▼'} ${Math.abs(stock.priceChange).toFixed(2)}%
+                                </span>
+                            </div>
+                            <div class="info-item">
+                                <strong>POC 가격</strong>
+                                ${stock.poc.toLocaleString()}원
+                            </div>
+                            <div class="info-item">
+                                <strong>거래량 비율</strong>
+                                평균 대비 ${stock.volumeRatio.toFixed(2)}배
+                            </div>
+                            <div class="info-item">
+                                <strong>거래대금</strong>
+                                ${stock.tradeValue.toLocaleString()}백만원
+                            </div>
+                        </div>
+
+                        <div class="chart-mini">
+                            ${chartBars}
+                        </div>
+
+                        <div class="reason-box">
+                            <h4>💡 추천 근거</h4>
+                            <ul>
+                                ${stock.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('resultsSection').scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    </script>
+</body>
+</html>

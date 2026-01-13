@@ -1,0 +1,26 @@
+{
+  "name": "stock-recommendation-system",
+  "version": "1.0.0",
+  "description": "POC 기반 주식 종목 추천 시스템",
+  "main": "api/scan.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build"
+  },
+  "keywords": [
+    "stock",
+    "trading",
+    "POC",
+    "volume-profile",
+    "korea-investment"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "vercel": "^33.0.0"
+  }
+}
